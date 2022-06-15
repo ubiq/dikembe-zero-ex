@@ -82,7 +82,7 @@ func main() {
 	erc721OrderFilled := common.HexToHash("0x50273fa02273cceea9cf085b42de5c8af60624140168bd71357db833535877af")
 	erc721OrderPreSigned := common.HexToHash("0x8c5d0c41fb16a7317a6c55ff7ba93d9d74f79e434fefa694e50d6028afbfa3f0")
 
-	contractAbi, err := abi.JSON(strings.NewReader(string(ERC721OrdersFeature.ERC721OrdersFeatureABI)))
+	contractAbi, err := abi.JSON(strings.NewReader(string(ERC721OrdersFeature.ERC721OrdersFeatureMetaData.ABI)))
 	if err != nil {
 		log.Fatal(err)
 	}
