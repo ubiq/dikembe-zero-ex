@@ -34,6 +34,7 @@ type embed struct {
 }
 
 var (
+	rpcURL     string
 	wsRPCURL   string
 	webhookURL string
 
@@ -53,19 +54,26 @@ var (
 )
 
 func init() {
+	flag.StringVar(&rpcURL, "rpcURL", "http://127.0.0.1:8588", "RPC URL")
 	flag.StringVar(&wsRPCURL, "wsRPCURL", "ws://127.0.0.1:8589", "WS RPC URL")
 	flag.StringVar(&webhookURL, "webhookURL", "https://discord.com/api/webhooks/", "Webhook URL")
 	flag.StringVar(&avatarUsername, "avatarUsername", "Jawa", "Avatar username")
-	flag.StringVar(&avatarURL, "avatarURL", "https://i.pinimg.com/originals/73/48/64/734864cdf9a657fd65b9ae79120739d3.jpg", "Avatar image URL")
+	flag.StringVar(&avatarURL, "avatarURL", "https://i.pinimg.com/originals/3e/6f/39/3e6f39b3d264bbbf6479553383adc905.jpg", "Avatar image URL")
 	flag.Parse()
 }
 
 func main() {
-	client, err := ethclient.Dial(wsRPCURL)
+	clientWS, err := ethclient.Dial(wsRPCURL)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer client.Close()
+	defer clientWS.Close()
+
+	clientRPC, err := ethclient.Dial(rpcURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer clientRPC.Close()
 
 	subch := make(chan types.Log)
 
@@ -74,11 +82,11 @@ func main() {
 			if i > 0 {
 				time.Sleep(2 * time.Second)
 			}
-			subscribeFilterLogs(client, subch)
+			subscribeFilterLogs(clientWS, subch)
 		}
 	}()
 
-	erc721OrderCancelled := common.HexToHash("0xa015ad2dc32f266993958a0fd9884c746b971b254206f3478bc43e2f125c7b9e")
+	//erc721OrderCancelled := common.HexToHash("0xa015ad2dc32f266993958a0fd9884c746b971b254206f3478bc43e2f125c7b9e")
 	erc721OrderFilled := common.HexToHash("0x50273fa02273cceea9cf085b42de5c8af60624140168bd71357db833535877af")
 	erc721OrderPreSigned := common.HexToHash("0x8c5d0c41fb16a7317a6c55ff7ba93d9d74f79e434fefa694e50d6028afbfa3f0")
 
@@ -96,18 +104,6 @@ func main() {
 			continue
 		}
 		switch vLog.Topics[0].Hex() {
-		case erc721OrderCancelled.Hex():
-			var event ERC721OrdersFeature.ERC721OrdersFeatureERC721OrderCancelled
-			err := contractAbi.UnpackIntoInterface(&event, "ERC721OrderCancelled", vLog.Data)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// TODO - Format this event
-			fmt.Printf("erc721OrderCancelled - %+v\n", event)
-			//msg := ""
-			//postEvent(msg, vLog.BlockNumber, vLog.TxHash.String())
-			lastTXID = vLog.TxHash.String()
 		case erc721OrderFilled.Hex():
 			var event ERC721OrdersFeature.ERC721OrdersFeatureERC721OrderFilled
 			err := contractAbi.UnpackIntoInterface(&event, "ERC721OrderFilled", vLog.Data)
@@ -115,10 +111,16 @@ func main() {
 				log.Fatal(err)
 			}
 
+			// Query the blockchain for the amount sent as event log does not show the Fees
+			tx, _, err := clientRPC.TransactionByHash(context.Background(), vLog.TxHash)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			msg := ""
-			msg = fmt.Sprintf("SALE! - %s ID: %d ; %.8f UBQ ; Seller %s Buyer %s",
+			msg = fmt.Sprintf("🤑 SALE! - %s %d ; %.8f UBQ ; Seller %s Buyer %s",
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId,
-				weiToEther(event.Erc20TokenAmount), event.Maker, event.Taker)
+				weiToEther(tx.Value()), event.Maker, event.Taker)
 			postEvent(msg, vLog.BlockNumber, vLog.TxHash.String())
 			lastTXID = vLog.TxHash.String()
 		case erc721OrderPreSigned.Hex():
@@ -128,10 +130,20 @@ func main() {
 				log.Fatal(err)
 			}
 
+			// Process Fee
+			fees := big.NewInt(0)
+			erc20TokenAmount := big.NewInt(0)
+			if len(event.Fees) > 0 {
+				for _, fee := range event.Fees {
+					fees.Add(fees, fee.Amount)
+				}
+			}
+			erc20TokenAmount.Add(fees, event.Erc20TokenAmount)
+
 			msg := ""
-			msg = fmt.Sprintf("LIST! - %s ID: %d ; %.8f UBQ ; Seller %s",
+			msg = fmt.Sprintf("🫰 LIST! - %s %d ; %.8f UBQ ; Seller %s",
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId,
-				weiToEther(event.Erc20TokenAmount), event.Maker)
+				weiToEther(erc20TokenAmount), event.Maker)
 			postEvent(msg, vLog.BlockNumber, vLog.TxHash.String())
 			lastTXID = vLog.TxHash.String()
 		}
