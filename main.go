@@ -117,11 +117,11 @@ func main() {
 				log.Fatal(err)
 			}
 
-			msg := ""
-			msg = fmt.Sprintf("🤑 SALE! - %s %d ; %.8f UBQ ; Seller %s Buyer %s",
+			msg := fmt.Sprintf("Seller %.8s\nBuyer %.8s", event.Maker, event.Taker)
+			title := fmt.Sprintf("🤑 SALE! - %s #%d ; %.5f UBQ",
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId,
-				weiToEther(tx.Value()), event.Maker, event.Taker)
-			postEvent(msg, vLog.BlockNumber, vLog.TxHash.String())
+				weiToEther(tx.Value()))
+			postTradeEvent(msg, vLog.BlockNumber, vLog.TxHash.String(), title)
 			lastTXID = vLog.TxHash.String()
 		case erc721OrderPreSigned.Hex():
 			var event ERC721OrdersFeature.ERC721OrdersFeatureERC721OrderPreSigned
@@ -140,11 +140,11 @@ func main() {
 			}
 			erc20TokenAmount.Add(fees, event.Erc20TokenAmount)
 
-			msg := ""
-			msg = fmt.Sprintf("🫰 LIST! - %s %d ; %.8f UBQ ; Seller %s",
+			msg := fmt.Sprintf("Seller %.8s", event.Maker)
+			title := fmt.Sprintf("🫰 LIST! - %s #%d ; %.5f UBQ",
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId,
-				weiToEther(erc20TokenAmount), event.Maker)
-			postEvent(msg, vLog.BlockNumber, vLog.TxHash.String())
+				weiToEther(erc20TokenAmount))
+			postTradeEvent(msg, vLog.BlockNumber, vLog.TxHash.String(), title)
 			lastTXID = vLog.TxHash.String()
 		}
 	}
@@ -179,8 +179,7 @@ func subscribeFilterLogs(client *ethclient.Client, subch chan types.Log) {
 	log.Println("connection lost: ", <-sub.Err())
 }
 
-func postEvent(msg string, block uint64, txid string) {
-	title := fmt.Sprintf("Block: %d TX: %.30s...", block, txid)
+func postTradeEvent(msg string, block uint64, txid string, title string) {
 	titleURL := fmt.Sprintf("https://ubiqscan.io/tx/%s", txid)
 
 	blockEmbed := embed{Title: title, URL: titleURL, Description: msg}
