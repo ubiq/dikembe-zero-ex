@@ -3,15 +3,15 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"math/big"
-	"net/http"
 	"strings"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
+	"github.com/ubiq/bishop-discord/nft"
 	ERC721OrdersFeature "github.com/ubiq/dikembe-discord/contracts"
 	ubiq "github.com/ubiq/go-ubiq/v7"
 	"github.com/ubiq/go-ubiq/v7/accounts/abi"
@@ -21,22 +21,11 @@ import (
 	"github.com/ubiq/go-ubiq/v7/params"
 )
 
-type payload struct {
-	Username  string  `json:"username"`
-	AvatarURL string  `json:"avatar_url"`
-	Embeds    []embed `json:"embeds"`
-}
-
-type embed struct {
-	Title       string `json:"title"`
-	URL         string `json:"url"`
-	Description string `json:"description"`
-}
-
 var (
-	rpcURL     string
-	wsRPCURL   string
-	webhookURL string
+	rpcURL       string
+	wsRPCURL     string
+	webhookID    string
+	webhookToken string
 
 	avatarUsername string
 	avatarURL      string
@@ -56,7 +45,8 @@ var (
 func init() {
 	flag.StringVar(&rpcURL, "rpcURL", "http://127.0.0.1:8588", "RPC URL")
 	flag.StringVar(&wsRPCURL, "wsRPCURL", "ws://127.0.0.1:8589", "WS RPC URL")
-	flag.StringVar(&webhookURL, "webhookURL", "https://discord.com/api/webhooks/", "Webhook URL")
+	flag.StringVar(&webhookID, "webhookID", "", "Webhook ID")
+	flag.StringVar(&webhookToken, "webhookToken", "", "Webhook Token")
 	flag.StringVar(&avatarUsername, "avatarUsername", "Jawa", "Avatar username")
 	flag.StringVar(&avatarURL, "avatarURL", "https://i.pinimg.com/originals/3e/6f/39/3e6f39b3d264bbbf6479553383adc905.jpg", "Avatar image URL")
 	flag.Parse()
@@ -121,7 +111,8 @@ func main() {
 			title := fmt.Sprintf("🤑 SALE! - %s #%d ; %.5f UBQ",
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId,
 				weiToEther(tx.Value()))
-			postTradeEvent(msg, vLog.BlockNumber, vLog.TxHash.String(), title)
+			webhookExecuteTradeNFTEvent(msg, vLog.TxHash.String(), title,
+				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			lastTXID = vLog.TxHash.String()
 		case erc721OrderPreSigned.Hex():
 			var event ERC721OrdersFeature.ERC721OrdersFeatureERC721OrderPreSigned
@@ -144,7 +135,8 @@ func main() {
 			title := fmt.Sprintf("🫰 LIST! - %s #%d ; %.5f UBQ",
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId,
 				weiToEther(erc20TokenAmount))
-			postTradeEvent(msg, vLog.BlockNumber, vLog.TxHash.String(), title)
+			webhookExecuteTradeNFTEvent(msg, vLog.TxHash.String(), title,
+				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			lastTXID = vLog.TxHash.String()
 		}
 	}
@@ -179,26 +171,45 @@ func subscribeFilterLogs(client *ethclient.Client, subch chan types.Log) {
 	log.Println("connection lost: ", <-sub.Err())
 }
 
-func postTradeEvent(msg string, block uint64, txid string, title string) {
+func webhookExecuteTradeNFTEvent(msg string, txid string, title string, token string, tokenID *big.Int) {
 	titleURL := fmt.Sprintf("https://ubiqscan.io/tx/%s", txid)
+	var iNFT nft.NFT
+	switch token {
+	case "CHIMP":
+		iNFT = nft.HandleChimp(rpcURL, tokenID)
+	case "GB89":
+		iNFT = nft.HandleGB89(rpcURL, tokenID)
+	case "nCeption":
+		iNFT = nft.HandleNception(rpcURL, tokenID)
+	}
 
-	blockEmbed := embed{Title: title, URL: titleURL, Description: msg}
-	embeds := []embed{blockEmbed}
-	jsonReq := payload{Username: avatarUsername, AvatarURL: avatarURL, Embeds: embeds}
+	session, _ := discordgo.New("")
+	msgembed := discordgo.MessageEmbed{
+		URL:         titleURL,
+		Type:        discordgo.EmbedTypeLink,
+		Title:       title,
+		Description: msg,
+		Color:       16750848,
+		Image: &discordgo.MessageEmbedImage{
+			URL: "attachment://output.png",
+		},
+	}
+	attachment := discordgo.File{
+		Name:        "output.png",
+		ContentType: "image/png",
+		Reader:      bytes.NewReader(iNFT.Picture),
+	}
+	webhook := &discordgo.WebhookParams{
+		Username:  avatarUsername,
+		AvatarURL: avatarURL,
+		Embeds:    []*discordgo.MessageEmbed{&msgembed},
+		Files:     []*discordgo.File{&attachment},
+	}
 
-	jsonStr, _ := json.Marshal(jsonReq)
-	log.Println("JSON POST:", string(jsonStr))
-
-	req, _ := http.NewRequest("POST", webhookURL, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	_, err := session.WebhookExecute(webhookID, webhookToken, true, webhook)
 	if err != nil {
 		log.Println(err)
-		return
 	}
-	defer resp.Body.Close()
 }
 
 func weiToEther(wei *big.Int) *big.Float {
