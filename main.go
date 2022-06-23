@@ -107,10 +107,10 @@ func main() {
 				log.Fatal(err)
 			}
 
-			msg := fmt.Sprintf("Seller %.8s\nBuyer %.8s", event.Maker, event.Taker)
-			title := fmt.Sprintf("🤑 SALE! - %s #%d ; %.5f UBQ",
-				tokenMap[event.Erc721Token.String()], event.Erc721TokenId,
-				weiToEther(tx.Value()))
+			msg := fmt.Sprintf("**Seller:** %s\n**Buyer:** %s\n**Price:** %.5f UBQ",
+				shortAddress(event.Maker), shortAddress(event.Taker), weiToEther(tx.Value()))
+			title := fmt.Sprintf("🤑 SALE! - %s #%d",
+				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			webhookExecuteTradeNFTEvent(msg, vLog.TxHash.String(), title,
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			lastTXID = vLog.TxHash.String()
@@ -131,10 +131,10 @@ func main() {
 			}
 			erc20TokenAmount.Add(fees, event.Erc20TokenAmount)
 
-			msg := fmt.Sprintf("Seller %.8s", event.Maker)
-			title := fmt.Sprintf("🫰 LIST! - %s #%d ; %.5f UBQ",
-				tokenMap[event.Erc721Token.String()], event.Erc721TokenId,
-				weiToEther(erc20TokenAmount))
+			msg := fmt.Sprintf("**Seller:** %s\n**Price:** %.5f UBQ",
+				shortAddress(event.Maker), weiToEther(erc20TokenAmount))
+			title := fmt.Sprintf("🫰 LIST! - %s #%d",
+				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			webhookExecuteTradeNFTEvent(msg, vLog.TxHash.String(), title,
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			lastTXID = vLog.TxHash.String()
@@ -217,4 +217,9 @@ func weiToEther(wei *big.Int) *big.Float {
 		return nil
 	}
 	return new(big.Float).Quo(new(big.Float).SetInt(wei), big.NewFloat(params.Ether))
+}
+
+func shortAddress(a common.Address) string {
+	aS := a.String()
+	return fmt.Sprintf("%s...%s", aS[:4], aS[len(aS)-4:])
 }
