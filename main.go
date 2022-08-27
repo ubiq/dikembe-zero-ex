@@ -131,10 +131,16 @@ func main() {
 			}
 			erc20TokenAmount.Add(fees, event.Erc20TokenAmount)
 
+			// Direction
+			emojiVerb := "🫰 LIST!"
+			if event.Direction == 1 {
+				emojiVerb = "🫴 OFFER!"
+			}
+
 			msg := fmt.Sprintf("**Seller:** %s\n**Price:** %.5f UBQ",
 				shortAddress(event.Maker), weiToEther(erc20TokenAmount))
-			title := fmt.Sprintf("🫰 LIST! - %s #%d",
-				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
+			title := fmt.Sprintf("%s - %s #%d",
+				emojiVerb, tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			webhookExecuteTradeNFTEvent(msg, vLog.TxHash.String(), title,
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			lastTXID = vLog.TxHash.String()
