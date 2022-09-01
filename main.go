@@ -13,6 +13,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/ubiq/bishop-discord/nft"
 	ERC721OrdersFeature "github.com/ubiq/dikembe-discord/contracts"
+	ERC20 "github.com/ubiq/dikembe-discord/contracts/ERC20"
 	ubiq "github.com/ubiq/go-ubiq/v7"
 	"github.com/ubiq/go-ubiq/v7/accounts/abi"
 	"github.com/ubiq/go-ubiq/v7/common"
@@ -76,11 +77,15 @@ func main() {
 		}
 	}()
 
-	//erc721OrderCancelled := common.HexToHash("0xa015ad2dc32f266993958a0fd9884c746b971b254206f3478bc43e2f125c7b9e")
 	erc721OrderFilled := common.HexToHash("0x50273fa02273cceea9cf085b42de5c8af60624140168bd71357db833535877af")
 	erc721OrderPreSigned := common.HexToHash("0x8c5d0c41fb16a7317a6c55ff7ba93d9d74f79e434fefa694e50d6028afbfa3f0")
+	erc20Transfer := common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
 
 	contractAbi, err := abi.JSON(strings.NewReader(string(ERC721OrdersFeature.ERC721OrdersFeatureMetaData.ABI)))
+	if err != nil {
+		log.Fatal(err)
+	}
+	contractERC20Abi, err := abi.JSON(strings.NewReader(string(ERC20.ERC20ABI)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -107,8 +112,34 @@ func main() {
 				log.Fatal(err)
 			}
 
-			msg := fmt.Sprintf("**Seller:** %s\n**Buyer:** %s\n**Price:** %.5f UBQ",
-				shortAddress(event.Maker), shortAddress(event.Taker), weiToEther(tx.Value()))
+			value := big.NewInt(0)
+			valueString := ""
+			if len(tx.Value().Bits()) == 0 {
+				// WUBQ handling
+				rx, _ := clientRPC.TransactionReceipt(context.Background(), vLog.TxHash)
+				for _, rxLog := range rx.Logs {
+					switch rxLog.Topics[0].Hex() {
+					case erc20Transfer.Hex():
+						var event ERC20.ERC20Transfer
+						if len(rxLog.Topics) == 4 {
+							continue
+						}
+						err := contractERC20Abi.UnpackIntoInterface(&event, "Transfer", rxLog.Data)
+						if err != nil {
+							log.Println("Unpack error: ", err)
+							continue
+						}
+						value.Add(value, event.Value)
+					}
+				}
+				valueString = fmt.Sprintf("%.5f WUBQ", weiToEther(value))
+			} else {
+				// UBQ
+				valueString = fmt.Sprintf("%.5f UBQ", weiToEther(tx.Value()))
+			}
+
+			msg := fmt.Sprintf("**Seller:** %s\n**Buyer:** %s\n**Price:** %s",
+				shortAddress(event.Maker), shortAddress(event.Taker), valueString)
 			title := fmt.Sprintf("🤑 SALE! - %s #%d",
 				tokenMap[event.Erc721Token.String()], event.Erc721TokenId)
 			webhookExecuteTradeNFTEvent(msg, vLog.TxHash.String(), title,
