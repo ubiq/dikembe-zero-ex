@@ -38,6 +38,7 @@ var (
 
 	tokenMap = map[string]string{
 		"0x1e1628A35C82169F876F97C9CE5B6533895c2B22": "CHIMP",
+		"0xc3D585288D35215754e970A23DD8DE37a08e71B7": "Cryptsters",
 		"0x0e2fbBA88C5E526f5160Af1b9Ad79a20130b2216": "GB89",
 		"0x81f1a6e026d49c2260a8D6D8e14Bca1628c1Df43": "nCeption",
 	}
@@ -214,6 +215,8 @@ func webhookExecuteTradeNFTEvent(msg string, txid string, title string, token st
 	switch token {
 	case "CHIMP":
 		iNFT = nft.HandleChimp(rpcURL, tokenID)
+	case "Cryptsters":
+		titleURL = fmt.Sprintf("https://jawacamp.ubiqsmart.com/collections/0xc3d585288d35215754e970a23dd8de37a08e71b7/%s", tokenID)
 	case "GB89":
 		iNFT = nft.HandleGB89(rpcURL, tokenID)
 	case "nCeption":
