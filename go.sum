@@ -74,6 +74,8 @@ github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtE
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/bwmarrin/discordgo v0.26.0 h1:/AdFmxHXSHInYAZ7K0O3VEIXlVjGpztk/nuCr9o+JCs=
 github.com/bwmarrin/discordgo v0.26.0/go.mod h1:NJZpH+1AfhIcyQsPeuBKsUtYrRnjkyu0kIVMCHkZtRY=
+github.com/bwmarrin/discordgo v0.28.1 h1:gXsuo2GBO7NbR6uqmrrBDplPUx2T3nzu775q/Rd1aG4=
+github.com/bwmarrin/discordgo v0.28.1/go.mod h1:NJZpH+1AfhIcyQsPeuBKsUtYrRnjkyu0kIVMCHkZtRY=
 github.com/c-bata/go-prompt v0.2.2/go.mod h1:VzqtzE2ksDBcdln8G7mk2RX9QyGjH+OVqOCSiVIqS34=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/cp v0.1.0 h1:SE+dxFebS7Iik5LK0tsi1k9ZCxEaFX4AjQmoyA+1dJk=
@@ -387,6 +389,8 @@ github.com/uber/jaeger-client-go v2.28.0+incompatible/go.mod h1:WVhlPFC8FDjOFMMW
 github.com/uber/jaeger-lib v2.4.1+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
 github.com/ubiq/go-ubiq/v7 v7.0.0 h1:6YBGVJpP4IKTY8f/C8LvUqUJfPxCqvXM9ymX9msl3mI=
 github.com/ubiq/go-ubiq/v7 v7.0.0/go.mod h1:kSM/1l0zX/JTVH2gy6PkUb2ySr2tBkFJABDRqgAnb54=
+github.com/ubiq/go-ubiq/v7 v7.0.2 h1:dI/HLFSBGiXQYat43/HgrcGFFvwu9Bi6CMckT1f1ICs=
+github.com/ubiq/go-ubiq/v7 v7.0.2/go.mod h1:kSM/1l0zX/JTVH2gy6PkUb2ySr2tBkFJABDRqgAnb54=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.0.1/go.mod h1:UQGH1tvbgY+Nz5t2n7tXsz52dQxojPUpymEIMZ47gx8=

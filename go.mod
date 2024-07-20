@@ -1,13 +1,13 @@
 module github.com/ubiq/dikembe-discord
 
-go 1.19
+go 1.22
 
 replace github.com/ubiq/bishop-discord => ../../ubiq/bishop-discord
 
 require (
-	github.com/bwmarrin/discordgo v0.26.0
+	github.com/bwmarrin/discordgo v0.28.1
 	github.com/ubiq/bishop-discord v0.0.0-00010101000000-000000000000
-	github.com/ubiq/go-ubiq/v7 v7.0.0
+	github.com/ubiq/go-ubiq/v7 v7.0.2
 )
 
 require (
